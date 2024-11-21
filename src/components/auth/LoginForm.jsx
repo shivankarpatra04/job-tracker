@@ -39,15 +39,10 @@ const LoginForm = () => {
         setIsLoading(true);
 
         try {
-            const success = await login(formData.email, formData.password);
-            if (success) {
-                const redirectTo = location.state?.from || '/dashboard';
-                navigate(redirectTo, { replace: true });
-            } else {
-                setError('Invalid credentials. Please try again.');
-            }
+            await login(formData.email, formData.password);
+            navigate(location.state?.from || '/dashboard', { replace: true });
         } catch (err) {
-            setError(err.message || 'An error occurred during login.');
+            setError(err.message || 'Login failed');
         } finally {
             setIsLoading(false);
         }

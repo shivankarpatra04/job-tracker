@@ -70,24 +70,20 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         setLoading(true);
         try {
-            const response = await authAPI.login({ email, password });
-            if (response.data.success && response.data.token) {
-                localStorage.setItem('token', response.data.token);
-                localStorage.setItem('user', JSON.stringify(response.data.user));
-                setUser(response.data.user);
-                return response.data;
-            } else {
-                throw new Error(response.data.message || 'Login failed');
+            const response = await api.post('/auth/login', { email, password });
+
+            if (response.data.success) {
+                const { token, user } = response.data;
+                localStorage.setItem('token', token);
+                localStorage.setItem('user', JSON.stringify(user));
+                setUser(user);
+                return { success: true };
             }
-        } catch (error) {
-            console.log('Login error details:', {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message
-            });
-            const errorMessage = error.response?.data?.message || 'Login failed';
-            setError(errorMessage);
-            throw new Error(errorMessage);
+            throw new Error(response.data.message || 'Login failed');
+        } catch (err) {
+            const message = err.response?.data?.error || err.message;
+            setError(message);
+            throw new Error(message);
         } finally {
             setLoading(false);
         }
