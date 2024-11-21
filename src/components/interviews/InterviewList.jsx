@@ -183,10 +183,10 @@ export function InterviewList() {
                                         .map((interview) => (
                                             <tr key={interview._id} className="border-b">
                                                 <td className="py-3 px-4 font-medium">
-                                                    {application.company || 'N/A'}
+                                                    {initialData?.application?.company || 'N/A'}
                                                 </td>
                                                 <td className="py-3 px-4">
-                                                    {application.position || 'N/A'}
+                                                    {initialData?.application?.position || 'N/A'}
                                                 </td>
                                                 <td className="py-3 px-4">
                                                     {new Date(interview.date).toLocaleDateString()}{' '}
