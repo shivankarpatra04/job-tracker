@@ -6,7 +6,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 // Create axios instance with proper configuration
 const api = axios.create({
-    baseURL: `${API_URL}/api`, // Add /api prefix to match your backend routes
+    baseURL: `${API_URL}`, // Add /api prefix to match your backend routes
     headers: {
         'Content-Type': 'application/json',
     },
