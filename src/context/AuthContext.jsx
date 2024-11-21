@@ -1,46 +1,35 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { authAPI } from '../utils/api';
+import { toast } from 'react-hot-toast';
 
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Check if user is logged in on mount
     useEffect(() => {
         const validateAuth = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const userData = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            const userData = localStorage.getItem('user');
 
-                if (token && userData) {
-                    // Verify token with backend
-                    try {
-                        // You should implement this endpoint in your API
-                        const response = await authAPI.verifyToken(token);
-                        if (response.data.valid) {
-                            setUser(JSON.parse(userData));
-                        } else {
-                            // Token is invalid
-                            localStorage.removeItem('token');
-                            localStorage.removeItem('user');
-                            setUser(null);
-                        }
-                    } catch (error) {
-                        // Token verification failed
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('user');
-                        setUser(null);
-                    }
+            if (!token || !userData) {
+                setUser(null);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const response = await authAPI.get('/auth/verify');
+                if (response.data.valid) {
+                    setUser(JSON.parse(userData));
                 } else {
-                    // No token or user data
-                    setUser(null);
+                    logout();
                 }
             } catch (error) {
                 console.error('Auth validation error:', error);
-                setUser(null);
+                logout();
             } finally {
                 setLoading(false);
             }
@@ -53,41 +42,35 @@ export const AuthProvider = ({ children }) => {
         setLoading(true);
         try {
             const response = await authAPI.register(userData);
-            setUser(response.data.user);
-            localStorage.setItem('user', JSON.stringify(response.data.user));
-            if (response.data.token) {
-                localStorage.setItem('token', response.data.token);
-            }
-            return response.data;
-        } catch (error) {
-            setError(error.response?.data?.message || 'Registration failed');
-            throw error;
+            const { user: newUser, token } = response.data;
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(newUser));
+            setUser(newUser);
+            toast.success('Registration successful!');
+            return { success: true };
+        } catch (err) {
+            const message = err.response?.data?.message || 'Registration failed';
+            setError(message);
+            throw new Error(message);
         } finally {
             setLoading(false);
         }
     };
 
-    const login = async (email, password) => {
+    const login = async (credentials) => {
         setLoading(true);
         try {
-            const response = await authAPI.login({ email, password });
-            if (response.data.success && response.data.token) {
-                localStorage.setItem('token', response.data.token);
-                localStorage.setItem('user', JSON.stringify(response.data.user));
-                setUser(response.data.user);
-                return response.data;
-            } else {
-                throw new Error(response.data.message || 'Login failed');
-            }
-        } catch (error) {
-            console.log('Login error details:', {
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message
-            });
-            const errorMessage = error.response?.data?.message || 'Login failed';
-            setError(errorMessage);
-            throw new Error(errorMessage);
+            const response = await authAPI.login(credentials);
+            const { user: loggedInUser, token } = response.data;
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(loggedInUser));
+            setUser(loggedInUser);
+            toast.success('Login successful!');
+            return { success: true };
+        } catch (err) {
+            const message = err.response?.data?.message || 'Login failed';
+            setError(message);
+            throw new Error(message);
         } finally {
             setLoading(false);
         }
@@ -97,10 +80,12 @@ export const AuthProvider = ({ children }) => {
         setLoading(true);
         try {
             const response = await authAPI.forgotPassword(email);
+            toast.success('Reset link sent successfully!');
             return response.data;
-        } catch (error) {
-            setError(error.response?.data?.message || 'Failed to send reset email');
-            throw error;
+        } catch (err) {
+            const message = err.response?.data?.message || 'Failed to send reset email';
+            setError(message);
+            throw new Error(message);
         } finally {
             setLoading(false);
         }
@@ -110,13 +95,12 @@ export const AuthProvider = ({ children }) => {
         setLoading(true);
         try {
             const response = await authAPI.resetPassword(token, password);
-            if (response.data.token) {
-                localStorage.setItem('token', response.data.token);
-            }
+            toast.success('Password reset successful!');
             return response.data;
-        } catch (error) {
-            setError(error.response?.data?.message || 'Failed to reset password');
-            throw error;
+        } catch (err) {
+            const message = err.response?.data?.message || 'Failed to reset password';
+            setError(message);
+            throw new Error(message);
         } finally {
             setLoading(false);
         }
@@ -126,6 +110,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
+        toast.success('Logged out successfully');
     };
 
     const value = {
@@ -137,6 +122,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         forgotPassword,
         resetPassword,
+        isAuthenticated: !!user
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
