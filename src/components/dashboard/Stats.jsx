@@ -1,12 +1,6 @@
-// components/dashboard/Stats.jsx
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import {
-    Briefcase,
-    Calendar,
-    CheckCircle,
-    XCircle,
-    TrendingUp,
-    TrendingDown
+    Briefcase, Calendar, CheckCircle, XCircle, TrendingUp, TrendingDown
 } from "lucide-react";
 
 export function Stats({ stats }) {
@@ -14,23 +8,23 @@ export function Stats({ stats }) {
         {
             title: "Total Applications",
             value: stats?.applications?.total || 0,
-            change: stats?.applications?.weeklyChangeText,
+            change: stats?.applications?.weeklyChangeText || '0 new this week',
             trend: "up",
             icon: Briefcase,
             color: "text-blue-600"
         },
         {
-            title: "Interviews Scheduled",
+            title: "Interviews",
             value: stats?.interviews?.upcoming || 0,
-            change: stats?.interviews?.upcomingText,
+            change: stats?.interviews?.upcomingText || '0 interviews scheduled',
             trend: "up",
             icon: Calendar,
             color: "text-purple-600"
         },
         {
-            title: "Offers Received",
+            title: "Offers",
             value: stats?.offers?.total || 0,
-            change: stats?.offers?.pendingText,
+            change: stats?.offers?.pendingText || '0 pending',
             trend: "up",
             icon: CheckCircle,
             color: "text-green-600"
@@ -38,7 +32,7 @@ export function Stats({ stats }) {
         {
             title: "Rejections",
             value: stats?.rejections?.total || 0,
-            change: stats?.rejections?.weeklyChangeText,
+            change: stats?.rejections?.weeklyChangeText || '0 this week',
             trend: "down",
             icon: XCircle,
             color: "text-red-600"

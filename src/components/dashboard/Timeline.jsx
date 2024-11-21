@@ -2,14 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import {
-    Briefcase,
-    Calendar,
-    MapPin,
-    User2,
-    Video,
-    CheckCircle,
-    XCircle,
-    Clock
+    Briefcase, Calendar, MapPin, User2, Video, CheckCircle, XCircle, Clock
 } from "lucide-react";
 import { format, isToday, isYesterday } from 'date-fns';
 
@@ -29,7 +22,9 @@ const getActivityIcon = (type) => {
 };
 
 const getStatusColor = (status) => {
-    switch (status.toLowerCase()) {
+    if (!status) return 'bg-gray-100 text-gray-800';
+
+    switch (status.toString().toLowerCase()) {
         case 'applied':
             return 'bg-yellow-100 text-yellow-800';
         case 'interview':
@@ -47,7 +42,31 @@ const getStatusColor = (status) => {
     }
 };
 
+const formatActivityData = (activity) => {
+    if (activity.type === 'application') {
+        return {
+            title: `Applied to ${activity.data.company}`,
+            subtitle: activity.data.position,
+            status: activity.data.status
+        };
+    }
+    if (activity.type === 'interview') {
+        return {
+            title: `Interview with ${activity.data.company}`,
+            subtitle: activity.data.position,
+            status: activity.data.status,
+            platform: activity.data.interviewType
+        };
+    }
+    return {
+        title: 'Activity',
+        subtitle: '',
+        status: 'Unknown'
+    };
+};
+
 const formatDate = (date) => {
+    if (!date) return '';
     const dateObj = new Date(date);
     if (isToday(dateObj)) {
         return `Today at ${format(dateObj, 'h:mm a')}`;
@@ -82,10 +101,10 @@ const Timeline = ({ activities = [] }) => {
             <CardContent>
                 <div className="relative">
                     <div className="absolute left-0 top-0 h-full w-px bg-border ml-6" />
-
                     <div className="space-y-6">
                         {activities.map((activity, index) => {
                             const Icon = getActivityIcon(activity.type);
+                            const formattedActivity = formatActivityData(activity);
 
                             return (
                                 <div key={index} className="relative pl-8">
@@ -95,14 +114,14 @@ const Timeline = ({ activities = [] }) => {
 
                                     <div className="flex flex-col space-y-2">
                                         <div className="flex items-center justify-between">
-                                            <h4 className="font-medium">{activity.title}</h4>
-                                            <Badge className={getStatusColor(activity.status)}>
-                                                {activity.status}
+                                            <h4 className="font-medium">{formattedActivity.title}</h4>
+                                            <Badge className={getStatusColor(formattedActivity.status)}>
+                                                {formattedActivity.status}
                                             </Badge>
                                         </div>
 
                                         <p className="text-sm text-muted-foreground">
-                                            {activity.subtitle}
+                                            {formattedActivity.subtitle}
                                         </p>
 
                                         <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
@@ -118,10 +137,10 @@ const Timeline = ({ activities = [] }) => {
                                                 </span>
                                             )}
 
-                                            {activity.platform && (
+                                            {formattedActivity.platform && (
                                                 <span className="flex items-center">
                                                     <Video className="mr-1 h-4 w-4" />
-                                                    {activity.platform}
+                                                    {formattedActivity.platform}
                                                 </span>
                                             )}
 

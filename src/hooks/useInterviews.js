@@ -3,19 +3,21 @@ import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
-export const useInterviews = (status = 'Upcoming') => {
+export const useInterviews = (status = 'all') => {
     const [interviews, setInterviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     const fetchInterviews = useCallback(async () => {
         try {
+            setLoading(true);
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/interviews?status=${status}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+            const response = await axios.get(`${API_URL}/interviews`, {
+                headers: { Authorization: `Bearer ${token}` },
+                params: { status }
             });
+
+            console.log('Fetched interviews:', response.data);
             setInterviews(response.data.data || []);
             setError(null);
         } catch (err) {
@@ -31,10 +33,10 @@ export const useInterviews = (status = 'Upcoming') => {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.post(`${API_URL}/interviews`, interviewData, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
+
+            console.log('Scheduled interview:', response.data);
             setInterviews(prev => [...prev, response.data.data]);
             return response.data.data;
         } catch (err) {
