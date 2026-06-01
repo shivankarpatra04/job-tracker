@@ -1,8 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { calculateStats } from '../utils/statsCalculator';
 
 const API_URL = process.env.REACT_APP_API_URL;
+
+const generateTimelineActivities = (applications, interviews) => {
+    const activities = [
+        ...applications.map(app => ({
+            type: 'application',
+            date: app.createdAt,
+            data: {
+                company: app.company,
+                position: app.position,
+                status: app.status
+            }
+        })),
+        ...interviews.map(int => ({
+            type: 'interview',
+            date: int.date,
+            data: {
+                company: int.application?.company,
+                position: int.application?.position,
+                interviewType: int.type,
+                status: int.status
+            }
+        }))
+    ];
+
+    return activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+};
 
 export const useDashboard = () => {
     const [dashboardData, setDashboardData] = useState({
@@ -21,33 +47,7 @@ export const useDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const generateTimelineActivities = (applications, interviews) => {
-        const activities = [
-            ...applications.map(app => ({
-                type: 'application',
-                date: app.createdAt,
-                data: {
-                    company: app.company,
-                    position: app.position,
-                    status: app.status
-                }
-            })),
-            ...interviews.map(int => ({
-                type: 'interview',
-                date: int.date,
-                data: {
-                    company: int.application?.company,
-                    position: int.application?.position,
-                    interviewType: int.type,
-                    status: int.status
-                }
-            }))
-        ];
-
-        return activities.sort((a, b) => new Date(b.date) - new Date(a.date));
-    };
-
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = useCallback(async () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
@@ -93,13 +93,13 @@ export const useDashboard = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchDashboardData();
         const interval = setInterval(fetchDashboardData, 5 * 60 * 1000);
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchDashboardData]);
 
     return {
         ...dashboardData,
