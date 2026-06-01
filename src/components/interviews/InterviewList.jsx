@@ -3,36 +3,34 @@ import React, { useState } from 'react';
 import { useInterviews } from '../../hooks/useInterviews';
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Skeleton } from "../ui/skeleton";
+import { Plus, Edit2, Trash2, X, AlertTriangle, Calendar, MapPin, Video } from 'lucide-react';
 import { InterviewForm } from './InterviewForm';
 import { InterviewActions } from './InterviewActions';
-
-const statusColors = {
-    Scheduled: "bg-blue-100 text-blue-800",
-    Completed: "bg-green-100 text-green-800"
-};
+import { statusPill } from "../../lib/status";
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md">
+        <div
+            className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+            onClick={onClose}
+        >
+            <Card className="w-full max-w-md animate-scale-in" onClick={(e) => e.stopPropagation()}>
                 <div className="p-6">
-                    <h2 className="text-xl font-bold mb-4">Delete Interview</h2>
-                    <p className="text-gray-600 mb-6">
+                    <div className="mb-4 flex items-center gap-3">
+                        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+                            <AlertTriangle className="h-5 w-5" />
+                        </span>
+                        <h2 className="text-lg font-semibold">Delete interview</h2>
+                    </div>
+                    <p className="mb-6 text-sm text-muted-foreground">
                         Are you sure you want to delete this interview? This action cannot be undone.
                     </p>
-                    <div className="flex justify-end space-x-2">
-                        <Button variant="outline" onClick={onClose}>
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={onConfirm}
-                        >
-                            Delete
-                        </Button>
+                    <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={onClose}>Cancel</Button>
+                        <Button variant="destructive" onClick={onConfirm}>Delete</Button>
                     </div>
                 </div>
             </Card>
@@ -50,7 +48,6 @@ export function InterviewList() {
 
     const handleSubmit = async (formData) => {
         try {
-            console.log('Submitting interview data:', formData);
             if (selectedInterview) {
                 await updateInterview(selectedInterview._id, formData);
             } else {
@@ -86,62 +83,61 @@ export function InterviewList() {
     const handleStatusUpdate = async (id, updateData) => {
         try {
             await updateInterview(id, updateData);
-            // Interview list will update automatically via the hook
         } catch (err) {
             console.error('Error updating interview status:', err);
         }
     };
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error: {error}</div>;
+    const visibleInterviews = (interviews || []).filter(
+        (interview) => interview.status === selectedStatus
+    );
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Interviews</h2>
-                    <p className="text-gray-600">
-                        Manage your interviews
-                    </p>
+                    <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Interviews</h1>
+                    <p className="mt-1 text-muted-foreground">Schedule and track your upcoming and past interviews</p>
                 </div>
-                <Button onClick={() => {
-                    setSelectedInterview(null);
-                    setShowForm(true);
-                }}>
+                <Button onClick={() => { setSelectedInterview(null); setShowForm(true); }}>
                     <Plus className="mr-2 h-4 w-4" /> Schedule Interview
                 </Button>
             </div>
 
-            <div className="flex space-x-2 mb-4">
-                <Button
-                    variant={selectedStatus === 'Scheduled' ? "default" : "outline"}
-                    onClick={() => setSelectedStatus('Scheduled')}
-                >
-                    Upcoming
-                </Button>
-                <Button
-                    variant={selectedStatus === 'Completed' ? "default" : "outline"}
-                    onClick={() => setSelectedStatus('Completed')}
-                >
-                    Completed
-                </Button>
+            {/* Status segmented control */}
+            <div className="inline-flex rounded-lg border bg-muted/50 p-1">
+                {['Scheduled', 'Completed'].map((status) => (
+                    <button
+                        key={status}
+                        onClick={() => setSelectedStatus(status)}
+                        className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-200 ${selectedStatus === status
+                            ? 'bg-card text-foreground shadow-soft'
+                            : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                    >
+                        {status === 'Scheduled' ? 'Upcoming' : 'Completed'}
+                    </button>
+                ))}
             </div>
 
             {showForm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-4">
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-bold">
-                                    {selectedInterview ? 'Edit Interview' : 'Schedule Interview'}
-                                </h2>
-                                <Button
-                                    onClick={() => setShowForm(false)}
-                                    variant="ghost"
-                                >
-                                    ✕
-                                </Button>
-                            </div>
+                <div
+                    className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+                    onClick={() => setShowForm(false)}
+                >
+                    <div
+                        className="max-h-[90vh] w-full max-w-2xl animate-scale-in overflow-y-auto rounded-xl bg-card shadow-card-hover"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between border-b p-5">
+                            <h2 className="text-lg font-semibold">
+                                {selectedInterview ? 'Edit Interview' : 'Schedule Interview'}
+                            </h2>
+                            <Button onClick={() => setShowForm(false)} variant="ghost" size="icon" aria-label="Close">
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div className="p-5">
                             <InterviewForm
                                 onSubmit={handleSubmit}
                                 initialData={selectedInterview}
@@ -161,89 +157,126 @@ export function InterviewList() {
                 onConfirm={handleDeleteConfirm}
             />
 
-            <Card>
-                <div className="p-6">
+            {error ? (
+                <Card className="p-6 text-center text-rose-600">Error: {error}</Card>
+            ) : loading ? (
+                <Card className="p-6">
+                    <div className="space-y-3">
+                        {[...Array(4)].map((_, i) => (
+                            <Skeleton key={i} className="h-12 w-full" />
+                        ))}
+                    </div>
+                </Card>
+            ) : visibleInterviews.length === 0 ? (
+                <Card className="animate-fade-up">
+                    <div className="flex flex-col items-center gap-4 px-6 py-16 text-center">
+                        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Calendar className="h-7 w-7" />
+                        </span>
+                        <div>
+                            <h3 className="text-lg font-semibold">
+                                No {selectedStatus === 'Scheduled' ? 'upcoming' : 'completed'} interviews
+                            </h3>
+                            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                                {selectedStatus === 'Scheduled'
+                                    ? 'Schedule an interview to keep track of your conversations.'
+                                    : 'Completed interviews will show up here.'}
+                            </p>
+                        </div>
+                        {selectedStatus === 'Scheduled' && (
+                            <Button onClick={() => { setSelectedInterview(null); setShowForm(true); }}>
+                                <Plus className="mr-2 h-4 w-4" /> Schedule Interview
+                            </Button>
+                        )}
+                    </div>
+                </Card>
+            ) : (
+                <Card className="animate-fade-up overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b">
-                                    <th className="text-left py-3 px-4">Company</th>
-                                    <th className="text-left py-3 px-4">Position</th>
-                                    <th className="text-left py-3 px-4">Date & Time</th>
-                                    <th className="text-left py-3 px-4">Type</th>
-                                    <th className="text-left py-3 px-4">Status</th>
-                                    <th className="text-left py-3 px-4">Location</th>
-                                    <th className="text-right py-3 px-4">Actions</th>
+                                <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <th className="px-4 py-3">Company</th>
+                                    <th className="px-4 py-3">Position</th>
+                                    <th className="px-4 py-3">Date &amp; Time</th>
+                                    <th className="px-4 py-3">Type</th>
+                                    <th className="px-4 py-3">Status</th>
+                                    <th className="px-4 py-3">Location</th>
+                                    <th className="px-4 py-3 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {interviews && interviews.length > 0 ? (
-                                    interviews
-                                        .filter(interview => interview.status === selectedStatus)
-                                        .map((interview) => (
-                                            <tr key={interview._id} className="border-b">
-                                                <td className="py-3 px-4 font-medium">
-                                                    {interview.application?.company || 'N/A'}
-                                                </td>
-                                                <td className="py-3 px-4">
-                                                    {interview.application?.position || 'N/A'}
-                                                </td>
-                                                <td className="py-3 px-4">
-                                                    {new Date(interview.date).toLocaleDateString()}{' '}
-                                                    {interview.time &&
-                                                        new Date(`2000-01-01T${interview.time}`).toLocaleTimeString([], {
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        })}
-                                                </td>
-                                                <td className="py-3 px-4">{interview.type}</td>
-                                                <td className="py-3 px-4">
-                                                    <span className={`px-2 py-1 rounded-full text-sm ${statusColors[interview.status]}`}>
-                                                        {interview.status === 'Scheduled' ? 'Upcoming' : interview.status}
-                                                    </span>
-                                                </td>
-                                                <td className="py-3 px-4">
-                                                    {interview.platform ? (
-                                                        <span>{interview.platform} - {interview.location || 'N/A'}</span>
-                                                    ) : (
-                                                        interview.location || 'N/A'
-                                                    )}
-                                                </td>
-                                                <td className="py-3 px-4 text-right">
-                                                    {interview.status === 'Scheduled' && (
-                                                        <InterviewActions
-                                                            interview={interview}
-                                                            onUpdateStatus={handleStatusUpdate}
-                                                        />
-                                                    )}
-                                                    <Button
-                                                        variant="ghost"
-                                                        className="mr-2"
-                                                        onClick={() => handleEdit(interview)}
-                                                    >
-                                                        <Edit2 className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        onClick={() => handleDeleteClick(interview)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="7" className="py-4 text-center text-gray-500">
-                                            No {selectedStatus.toLowerCase()} interviews found.
+                            <tbody className="divide-y">
+                                {visibleInterviews.map((interview) => (
+                                    <tr key={interview._id} className="transition-colors hover:bg-muted/40">
+                                        <td className="px-4 py-3 font-medium">
+                                            {interview.application?.company || 'N/A'}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            {interview.application?.position || 'N/A'}
+                                        </td>
+                                        <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                                            {new Date(interview.date).toLocaleDateString()}{' '}
+                                            {interview.time &&
+                                                new Date(`2000-01-01T${interview.time}`).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                        </td>
+                                        <td className="px-4 py-3">{interview.type}</td>
+                                        <td className="px-4 py-3">
+                                            <span className={statusPill(interview.status)}>
+                                                {interview.status === 'Scheduled' ? 'Upcoming' : interview.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-muted-foreground">
+                                            <span className="flex items-center gap-1.5">
+                                                {interview.platform ? (
+                                                    <>
+                                                        <Video className="h-3.5 w-3.5" />
+                                                        {interview.platform}{interview.location ? ` · ${interview.location}` : ''}
+                                                    </>
+                                                ) : interview.location ? (
+                                                    <>
+                                                        <MapPin className="h-3.5 w-3.5" />
+                                                        {interview.location}
+                                                    </>
+                                                ) : 'N/A'}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center justify-end gap-1">
+                                                {interview.status === 'Scheduled' && (
+                                                    <InterviewActions
+                                                        interview={interview}
+                                                        onUpdateStatus={handleStatusUpdate}
+                                                    />
+                                                )}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label="Edit interview"
+                                                    onClick={() => handleEdit(interview)}
+                                                >
+                                                    <Edit2 className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label="Delete interview"
+                                                    className="text-muted-foreground hover:text-destructive"
+                                                    onClick={() => handleDeleteClick(interview)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
-                                )}
+                                ))}
                             </tbody>
                         </table>
                     </div>
-                </div>
-            </Card>
+                </Card>
+            )}
         </div>
     );
 }

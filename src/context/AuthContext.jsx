@@ -1,71 +1,67 @@
 import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { toast } from 'react-hot-toast';
+import { authAPI } from '../utils/api';
 
 export const AuthContext = createContext(null);
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-
-const api = axios.create({
-    baseURL: API_URL,
-    headers: { 'Content-Type': 'application/json' }
-});
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    // Check if user is logged in on mount
     useEffect(() => {
         const validateAuth = async () => {
-            const token = localStorage.getItem('token');
-            const userData = localStorage.getItem('user');
-
-            if (!token || !userData) {
-                setUser(null);
-                return;
-            }
-
             try {
-                const response = await api.get('/auth/verify', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const token = localStorage.getItem('token');
+                const userData = localStorage.getItem('user');
 
-                if (response.data.valid) {
-                    setUser(JSON.parse(userData));
+                if (token && userData) {
+                    // Verify token with backend
+                    try {
+                        // You should implement this endpoint in your API
+                        const response = await authAPI.verifyToken(token);
+                        if (response.data.valid) {
+                            setUser(JSON.parse(userData));
+                        } else {
+                            // Token is invalid
+                            localStorage.removeItem('token');
+                            localStorage.removeItem('user');
+                            setUser(null);
+                        }
+                    } catch (error) {
+                        // Token verification failed
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        setUser(null);
+                    }
                 } else {
-                    handleLogout();
+                    // No token or user data
+                    setUser(null);
                 }
             } catch (error) {
                 console.error('Auth validation error:', error);
-                handleLogout();
+                setUser(null);
+            } finally {
+                setLoading(false);
             }
         };
 
         validateAuth();
     }, []);
 
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setUser(null);
-    };
-
     const register = async (userData) => {
         setLoading(true);
         try {
-            const response = await api.post('/auth/register', userData);
-
-            const { user: newUser, token } = response.data;
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(newUser));
-            setUser(newUser);
-
-            toast.success('Registration successful!');
-            return { success: true };
-        } catch (err) {
-            const message = err.response?.data?.message || 'Registration failed';
-            toast.error(message);
-            throw new Error(message);
+            const response = await authAPI.register(userData);
+            setUser(response.data.user);
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            if (response.data.token) {
+                localStorage.setItem('token', response.data.token);
+            }
+            return response.data;
+        } catch (error) {
+            setError(error.response?.data?.message || 'Registration failed');
+            throw error;
         } finally {
             setLoading(false);
         }
@@ -74,19 +70,24 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         setLoading(true);
         try {
-            const response = await api.post('/auth/login', { email, password });
-
-            const { user: loggedInUser, token } = response.data;
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(loggedInUser));
-            setUser(loggedInUser);
-
-            toast.success('Login successful!');
-            return { success: true };
-        } catch (err) {
-            const message = err.response?.data?.message || 'Login failed';
-            toast.error(message);
-            throw new Error(message);
+            const response = await authAPI.login({ email, password });
+            if (response.data.success && response.data.token) {
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('user', JSON.stringify(response.data.user));
+                setUser(response.data.user);
+                return response.data;
+            } else {
+                throw new Error(response.data.message || 'Login failed');
+            }
+        } catch (error) {
+            console.log('Login error details:', {
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message
+            });
+            const errorMessage = error.response?.data?.message || 'Login failed';
+            setError(errorMessage);
+            throw new Error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -95,13 +96,11 @@ export const AuthProvider = ({ children }) => {
     const forgotPassword = async (email) => {
         setLoading(true);
         try {
-            const response = await api.post('/auth/forgot-password', { email });
-            toast.success('Reset password email sent!');
+            const response = await authAPI.forgotPassword(email);
             return response.data;
-        } catch (err) {
-            const message = err.response?.data?.message || 'Failed to send reset email';
-            toast.error(message);
-            throw new Error(message);
+        } catch (error) {
+            setError(error.response?.data?.message || 'Failed to send reset email');
+            throw error;
         } finally {
             setLoading(false);
         }
@@ -110,16 +109,23 @@ export const AuthProvider = ({ children }) => {
     const resetPassword = async (token, password) => {
         setLoading(true);
         try {
-            const response = await api.put(`/auth/reset-password/${token}`, { password });
-            toast.success('Password reset successful!');
+            const response = await authAPI.resetPassword(token, password);
+            if (response.data.token) {
+                localStorage.setItem('token', response.data.token);
+            }
             return response.data;
-        } catch (err) {
-            const message = err.response?.data?.message || 'Failed to reset password';
-            toast.error(message);
-            throw new Error(message);
+        } catch (error) {
+            setError(error.response?.data?.message || 'Failed to reset password');
+            throw error;
         } finally {
             setLoading(false);
         }
+    };
+
+    const logout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setUser(null);
     };
 
     const value = {
@@ -128,10 +134,9 @@ export const AuthProvider = ({ children }) => {
         error,
         register,
         login,
-        logout: handleLogout,
+        logout,
         forgotPassword,
         resetPassword,
-        isAuthenticated: !!user
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

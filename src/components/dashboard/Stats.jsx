@@ -11,7 +11,7 @@ export function Stats({ stats }) {
             change: stats?.applications?.weeklyChangeText || '0 new this week',
             trend: "up",
             icon: Briefcase,
-            color: "text-blue-600"
+            iconWrap: "bg-blue-50 text-blue-600",
         },
         {
             title: "Interviews",
@@ -19,7 +19,7 @@ export function Stats({ stats }) {
             change: stats?.interviews?.upcomingText || '0 interviews scheduled',
             trend: "up",
             icon: Calendar,
-            color: "text-purple-600"
+            iconWrap: "bg-violet-50 text-violet-600",
         },
         {
             title: "Offers",
@@ -27,7 +27,7 @@ export function Stats({ stats }) {
             change: stats?.offers?.pendingText || '0 pending',
             trend: "up",
             icon: CheckCircle,
-            color: "text-green-600"
+            iconWrap: "bg-emerald-50 text-emerald-600",
         },
         {
             title: "Rejections",
@@ -35,27 +35,33 @@ export function Stats({ stats }) {
             change: stats?.rejections?.weeklyChangeText || '0 this week',
             trend: "down",
             icon: XCircle,
-            color: "text-red-600"
+            iconWrap: "bg-rose-50 text-rose-600",
         }
     ];
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {statCards.map((stat) => (
-                <Card key={stat.title}>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {statCards.map((stat, i) => (
+                <Card
+                    key={stat.title}
+                    className="animate-fade-up transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover"
+                    style={{ animationDelay: `${i * 70}ms` }}
+                >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
                             {stat.title}
                         </CardTitle>
-                        <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                        <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${stat.iconWrap}`}>
+                            <stat.icon className="h-4 w-4" />
+                        </span>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stat.value}</div>
-                        <p className="text-xs text-muted-foreground flex items-center mt-1">
+                        <div className="text-3xl font-bold tabular-nums tracking-tight">{stat.value}</div>
+                        <p className="mt-1 flex items-center text-xs text-muted-foreground">
                             {stat.trend === "up" ? (
-                                <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
+                                <TrendingUp className="mr-1 h-3.5 w-3.5 text-emerald-500" />
                             ) : (
-                                <TrendingDown className="h-3 w-3 mr-1 text-red-500" />
+                                <TrendingDown className="mr-1 h-3.5 w-3.5 text-rose-500" />
                             )}
                             {stat.change}
                         </p>

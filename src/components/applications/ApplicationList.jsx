@@ -3,38 +3,33 @@ import React, { useState } from 'react';
 import { useApplications } from '../../hooks/useApplications';
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Skeleton } from "../ui/skeleton";
+import { Plus, Edit2, Trash2, X, AlertTriangle, Briefcase, FileText } from 'lucide-react';
 import ApplicationForm from './ApplicationForm';
-
-const statusColors = {
-    Applied: "bg-blue-100 text-blue-800",
-    Interview: "bg-yellow-100 text-yellow-800",
-    Offer: "bg-green-100 text-green-800",
-    Accepted: "bg-purple-100 text-purple-800",
-    Rejected: "bg-red-100 text-red-800"
-};
+import { statusPill } from "../../lib/status";
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <Card className="w-full max-w-md">
+        <div
+            className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+            onClick={onClose}
+        >
+            <Card className="w-full max-w-md animate-scale-in" onClick={(e) => e.stopPropagation()}>
                 <div className="p-6">
-                    <h2 className="text-xl font-bold mb-4">Delete Application</h2>
-                    <p className="text-gray-600 mb-6">
+                    <div className="mb-4 flex items-center gap-3">
+                        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+                            <AlertTriangle className="h-5 w-5" />
+                        </span>
+                        <h2 className="text-lg font-semibold">Delete application</h2>
+                    </div>
+                    <p className="mb-6 text-sm text-muted-foreground">
                         Are you sure you want to delete this application? This action cannot be undone.
                     </p>
-                    <div className="flex justify-end space-x-2">
-                        <Button variant="outline" onClick={onClose}>
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={onConfirm}
-                        >
-                            Delete
-                        </Button>
+                    <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={onClose}>Cancel</Button>
+                        <Button variant="destructive" onClick={onConfirm}>Delete</Button>
                     </div>
                 </div>
             </Card>
@@ -100,38 +95,36 @@ export function ApplicationList() {
         setShowForm(true);
     };
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error: {error}</div>;
-
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Job Applications</h2>
-                    <p className="text-gray-600">
-                        Track and manage your job applications
-                    </p>
+                    <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Applications</h1>
+                    <p className="mt-1 text-muted-foreground">Track and manage every job you've applied to</p>
                 </div>
-                <Button onClick={handleAddNew}>
+                <Button onClick={handleAddNew} className="sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" /> New Application
                 </Button>
             </div>
 
             {showForm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-4">
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-bold">
-                                    {isEditing ? 'Edit Application' : 'New Application'}
-                                </h2>
-                                <Button
-                                    onClick={handleCloseForm}
-                                    variant="ghost"
-                                >
-                                    ✕
-                                </Button>
-                            </div>
+                <div
+                    className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+                    onClick={handleCloseForm}
+                >
+                    <div
+                        className="max-h-[90vh] w-full max-w-2xl animate-scale-in overflow-y-auto rounded-xl bg-card shadow-card-hover"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between border-b p-5">
+                            <h2 className="text-lg font-semibold">
+                                {isEditing ? 'Edit Application' : 'New Application'}
+                            </h2>
+                            <Button onClick={handleCloseForm} variant="ghost" size="icon" aria-label="Close">
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div className="p-5">
                             <ApplicationForm
                                 onSubmit={handleSubmit}
                                 initialData={selectedApplication}
@@ -151,61 +144,95 @@ export function ApplicationList() {
                 onConfirm={handleDeleteConfirm}
             />
 
-            <Card>
-                <div className="p-6">
+            {error ? (
+                <Card className="p-6 text-center text-rose-600">Error: {error}</Card>
+            ) : loading ? (
+                <Card className="p-6">
+                    <div className="space-y-3">
+                        {[...Array(5)].map((_, i) => (
+                            <Skeleton key={i} className="h-12 w-full" />
+                        ))}
+                    </div>
+                </Card>
+            ) : applications.length === 0 ? (
+                <Card className="animate-fade-up">
+                    <div className="flex flex-col items-center gap-4 px-6 py-16 text-center">
+                        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                            <Briefcase className="h-7 w-7" />
+                        </span>
+                        <div>
+                            <h3 className="text-lg font-semibold">No applications yet</h3>
+                            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                                Add your first job application to start tracking your progress.
+                            </p>
+                        </div>
+                        <Button onClick={handleAddNew}>
+                            <Plus className="mr-2 h-4 w-4" /> Add your first application
+                        </Button>
+                    </div>
+                </Card>
+            ) : (
+                <Card className="animate-fade-up overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b">
-                                    <th className="text-left py-3 px-4">Company</th>
-                                    <th className="text-left py-3 px-4">Position</th>
-                                    <th className="text-left py-3 px-4">Location</th>
-                                    <th className="text-left py-3 px-4">Status</th>
-                                    <th className="text-left py-3 px-4">Next Step</th>
-                                    <th className="text-right py-3 px-4">Actions</th>
+                                <tr className="border-b bg-muted/40 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <th className="px-4 py-3">Company</th>
+                                    <th className="px-4 py-3">Position</th>
+                                    <th className="px-4 py-3">Location</th>
+                                    <th className="px-4 py-3">Status</th>
+                                    <th className="px-4 py-3">Next Step</th>
+                                    <th className="px-4 py-3 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y">
                                 {applications.map((application) => (
-                                    <tr key={application._id} className="border-b">
-                                        <td className="py-3 px-4 font-medium">{application.company}</td>
-                                        <td className="py-3 px-4">{application.position}</td>
-                                        <td className="py-3 px-4">{application.location}</td>
-                                        <td className="py-3 px-4">
-                                            <span className={`px-2 py-1 rounded-full text-sm ${statusColors[application.status]}`}>
+                                    <tr
+                                        key={application._id}
+                                        className="transition-colors hover:bg-muted/40"
+                                    >
+                                        <td className="px-4 py-3 font-medium">
+                                            <div className="flex items-center gap-2">
+                                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                                {application.company}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">{application.position}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{application.location || '—'}</td>
+                                        <td className="px-4 py-3">
+                                            <span className={statusPill(application.status)}>
                                                 {application.status}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-4">{application.nextStep}</td>
-                                        <td className="py-3 px-4 text-right">
-                                            <Button
-                                                variant="ghost"
-                                                className="mr-2"
-                                                onClick={() => handleEdit(application)}
-                                            >
-                                                <Edit2 className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                onClick={() => handleDeleteClick(application)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                        <td className="px-4 py-3 text-muted-foreground">{application.nextStep || '—'}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label={`Edit application at ${application.company}`}
+                                                    onClick={() => handleEdit(application)}
+                                                >
+                                                    <Edit2 className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label={`Delete application at ${application.company}`}
+                                                    className="text-muted-foreground hover:text-destructive"
+                                                    onClick={() => handleDeleteClick(application)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
-                                {applications.length === 0 && (
-                                    <tr>
-                                        <td colSpan="6" className="py-4 text-center text-gray-500">
-                                            No applications found. Add your first application!
-                                        </td>
-                                    </tr>
-                                )}
                             </tbody>
                         </table>
                     </div>
-                </div>
-            </Card>
+                </Card>
+            )}
         </div>
     );
 }
